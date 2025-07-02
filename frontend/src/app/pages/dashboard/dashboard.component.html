@@ -39,6 +39,31 @@
       <!-- Quick Actions -->
       <section class="quick-actions-section">
         <h2 class="section-title">Quick Actions</h2>
+        
+        <!-- Upload Status -->
+        <div *ngIf="uploadStatus" class="upload-status" [ngClass]="{
+          'upload-success': uploadStatus.includes('successfully'),
+          'upload-error': uploadStatus.includes('failed') || uploadStatus.includes('Invalid') || uploadStatus.includes('too large'),
+          'upload-progress': uploadProgress
+        }">
+          <div *ngIf="uploadProgress" class="upload-spinner"></div>
+          {{ uploadStatus }}
+        </div>
+
+        <!-- Uploaded File Info -->
+        <div *ngIf="uploadedFile && !uploadProgress" class="uploaded-file-info">
+          <div class="file-info-card">
+            <div class="file-icon">📄</div>
+            <div class="file-details">
+              <span class="file-name">{{ uploadedFile.name }}</span>
+              <span class="file-size">{{ (uploadedFile.size / 1024 / 1024).toFixed(2) }} MB</span>
+            </div>
+            <div class="file-actions">
+              <button class="view-file-btn" (click)="onViewFile()">View</button>
+            </div>
+          </div>
+        </div>
+
         <div class="action-cards">
           <div
             class="action-card primary-card"

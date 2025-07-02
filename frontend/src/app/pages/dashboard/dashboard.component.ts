@@ -14,6 +14,9 @@ export class DashboardComponent implements OnInit {
   user: any = null;
   loading = true;
   hasActivity = false;
+  uploadedFile: File | null = null;
+  uploadStatus: string = '';
+  uploadProgress = false;
   stats = {
     resumesCreated: 0,
     applicationsSubmitted: 0,
@@ -72,7 +75,61 @@ export class DashboardComponent implements OnInit {
   }
 
   onUploadResume(): void {
-    console.log('Upload resume clicked');
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.pdf,.doc,.docx,.txt';
+    fileInput.addEventListener('change', (event: any) => {
+      const file = event.target.files[0];
+      if (file) {
+        this.handleFileUpload(file);
+      }
+    });
+    fileInput.click();
+  }
+
+  private handleFileUpload(file: File): void {
+    const allowedTypes = ['application/pdf', 'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain'];
+
+    if (!allowedTypes.includes(file.type)) {
+      this.uploadStatus = 'Invalid file type. Please upload PDF, DOC, DOCX, or TXT files only.';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      this.uploadStatus = 'File too large. Please upload files smaller than 5MB.';
+      return;
+    }
+
+    this.uploadProgress = true;
+    this.uploadStatus = 'Uploading...';
+
+    this.api.uploadResume(file).subscribe({
+      next: (response) => {
+        this.uploadedFile = file;
+        this.uploadStatus = 'File uploaded successfully!';
+        this.uploadProgress = false;
+        this.hasActivity = true;
+        console.log('Upload successful:', response);
+      },
+      error: (error) => {
+        this.uploadStatus = `Upload failed: ${error.error?.message || 'Unknown error'}`;
+        this.uploadProgress = false;
+        console.error('Upload error:', error);
+      }
+    });
+  }
+
+  onViewFile(): void {
+    if (this.uploadedFile) {
+      const url = URL.createObjectURL(this.uploadedFile);
+      window.open(url, '_blank');
+
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
+    }
   }
 
   onCreateNew(): void {

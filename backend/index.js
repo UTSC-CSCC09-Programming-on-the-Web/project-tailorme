@@ -3,9 +3,50 @@ const cors = require("cors");
 const { OAuth2Client } = require("google-auth-library");
 const { google } = require("googleapis");
 const jwt = require("jsonwebtoken");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 require("dotenv").config();
 
 const app = express();
+
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'resume-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain'
+  ];
+
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only PDF, DOC, DOCX, and TXT files are allowed.'), false);
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  }
+});
 
 const corsOptions = {
   origin: process.env.FRONTEND_URL || "http://localhost:80",
@@ -92,6 +133,42 @@ app.get("/api/auth/user", authenticateToken, (req, res) => {
 app.post("/api/auth/logout", authenticateToken, (req, res) => {
   res.json({ message: "Logged out successfully" });
 });
+
+app.post("/api/resumes/upload", authenticateToken, upload.single('resume'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    res.json({
+      message: 'File uploaded successfully',
+      file: {
+        originalName: req.file.originalname,
+        filename: req.file.filename,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        uploadTime: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Upload failed' });
+  }
+});
+
+app.get("/api/resumes", authenticateToken, (req, res) => {
+  try {
+    res.json({
+      message: 'Resume endpoint working',
+      hasFiles: fs.existsSync(uploadsDir) && fs.readdirSync(uploadsDir).length > 0
+    });
+  } catch (error) {
+    console.error('Error checking files:', error);
+    res.status(500).json({ error: 'Failed to check files' });
+  }
+});
+
+app.use('/uploads', express.static(uploadsDir));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Backend listening on port ${PORT}`));
