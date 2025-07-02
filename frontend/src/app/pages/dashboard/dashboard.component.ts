@@ -13,6 +13,13 @@ import { ApiService } from '../../services/api.service';
 export class DashboardComponent implements OnInit {
   user: any = null;
   loading = true;
+  hasActivity = false;
+  stats = {
+    resumesCreated: 0,
+    applicationsSubmitted: 0,
+    interviewsScheduled: 0,
+    successRate: 0,
+  };
 
   constructor(private api: ApiService, private router: Router) {}
 
@@ -23,6 +30,11 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
+    this.loadUserData();
+    this.loadStats();
+  }
+
+  private loadUserData(): void {
     try {
       const userString = localStorage.getItem('user');
       if (userString) {
@@ -46,5 +58,32 @@ export class DashboardComponent implements OnInit {
       localStorage.removeItem('user');
       this.router.navigate(['/login']);
     }
+  }
+
+  private loadStats(): void {
+    setTimeout(() => {
+      this.stats = {
+        resumesCreated: 5,
+        applicationsSubmitted: 12,
+        interviewsScheduled: 3,
+        successRate: 25,
+      };
+    }, 1000);
+  }
+
+  onUploadResume(): void {
+    console.log('Upload resume clicked');
+  }
+
+  onCreateNew(): void {
+    console.log('Create new resume clicked');
+  }
+
+  onViewTemplates(): void {
+    console.log('View templates clicked');
+  }
+
+  onViewAllActivity(): void {
+    console.log('View all activity clicked');
   }
 }
